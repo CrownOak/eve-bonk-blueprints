@@ -85,6 +85,7 @@ def render_page(state):
   <footer>Most profitable T1 builds by ISK/hour, from EVE SDE + live Jita prices. Profit assumes
   Jita fills; treat as a directional guide. Top of the list = what to train toward and mine for.
   Click an item for its Fuzzwork market page. Auto-refreshes every {REFRESH_SECONDS//60}m.</footer>
+<script src="https://crownoak.github.io/wdeve/nav.js"></script>
 </body></html>"""
 
 
