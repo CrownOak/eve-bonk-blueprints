@@ -40,6 +40,23 @@ def _qty(n):
     return str(n)
 
 
+TIPS = {
+    "#": "Rank within this category by ISK per hour.",
+    "ITEM": "What you build. Click for its EVE Ref page (market + manufacturing).",
+    "ISK/HR": "Profit per hour of build time. This is the ranking metric.",
+    "PROFIT/BUILD": "Profit from one completed build job (sell minus materials minus fee).",
+    "HRS": "Build time in hours for one job at the assumed Material Efficiency.",
+    "MARGIN": "Profit as a percent of total cost.",
+    "SELL": "Product sell price at Jita.",
+    "MAT COST": "Material cost to build, at Jita sell, ME-adjusted.",
+    "VOL/DAY": "Daily units sold on the market (liquidity; low = hard to offload).",
+}
+
+
+def _th(label):
+    return f"<th data-tip=\"{html.escape(TIPS.get(label, ''))}\">{label}</th>"
+
+
 def render_page(state):
     """state = {generated_at, me_level, basis, count, rows:[...]}"""
     if not state or not state.get("rows"):
@@ -86,16 +103,16 @@ def render_page(state):
             sections.append(
                 f"<div class='thead' style='margin-top:22px'>{_esc(cat)}</div>"
                 "<table><thead><tr>"
-                "<th>#</th><th>ITEM</th><th>ISK/HR</th><th>PROFIT/BUILD</th>"
-                "<th>HRS</th><th>MARGIN</th><th>SELL</th><th>MAT COST</th><th>VOL/DAY</th>"
-                "</tr></thead><tbody>" + "".join(trs) + "</tbody></table>")
+                + _th("#") + _th("ITEM") + _th("ISK/HR") + _th("PROFIT/BUILD")
+                + _th("HRS") + _th("MARGIN") + _th("SELL") + _th("MAT COST") + _th("VOL/DAY")
+                + "</tr></thead><tbody>" + "".join(trs) + "</tbody></table>")
         body = "".join(sections)
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="{REFRESH_SECONDS}">
 <title>BONK - Blueprint Scanner</title>
-<link rel="stylesheet" href="https://crownoak.github.io/wdeve/common.css?v=2"></head>
+<link rel="stylesheet" href="https://crownoak.github.io/wdeve/common.css?v=3"></head>
 <body>
   <header>
     <h1>BONK &middot; BLUEPRINT PROFITABILITY SCANNER</h1>
