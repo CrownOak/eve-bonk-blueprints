@@ -1,0 +1,16 @@
+# venv + caches
+.venv/
+__pycache__/
+*.pyc
+
+# runtime + generated data (regenerable / local; only the page is published)
+blueprint.log
+sde_index.json
+bonk_blueprints.csv
+bonk_blueprints.xlsx
+bonk_blueprints_demo.csv
+bonk_blueprints_demo.xlsx
+index_demo.html
+*.tmp
+
+# tracked: index.html + source (.py, .bat, .ps1, README, .nojekyll)
