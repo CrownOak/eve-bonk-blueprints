@@ -43,12 +43,13 @@ def _qty(n):
 TIPS = {
     "#": "Rank within this category by ISK per hour.",
     "ITEM": "What you build. Click for its EVE Ref page (market + manufacturing).",
-    "ISK/HR": "Profit per hour of build time. This is the ranking metric.",
-    "PROFIT/BUILD": "Profit from one completed build job (sell minus materials minus fee).",
-    "HRS": "Build time in hours for one job at the assumed Material Efficiency.",
+    "ISK/HR": "Profit per hour of build time, across the whole run. This is the ranking metric.",
+    "OUT": "Units produced per build run. Some blueprints (bombs, charges) make a batch, so the run totals cover all of them.",
+    "SELL/U": "Product sell price PER UNIT at Jita. This matches what you see on the market / EVE Ref.",
+    "MAT/U": "Material cost per unit (run material cost divided by units per run), at Jita sell, ME-adjusted.",
     "MARGIN": "Profit as a percent of total cost.",
-    "SELL": "Product sell price at Jita.",
-    "MAT COST": "Material cost to build, at Jita sell, ME-adjusted.",
+    "PROFIT/RUN": "Profit from one full build run (all OUT units): sell minus materials minus ~5% fee.",
+    "HRS": "Build time in hours for one run at the assumed Material Efficiency.",
     "VOL/DAY": "Daily units sold on the market (liquidity; low = hard to offload).",
 }
 
@@ -88,23 +89,25 @@ def render_page(state):
                     parts = " &middot; ".join(
                         f"{_esc(m.get('name'))} &times;{_qty(m.get('qty'))}" for m in mats)
                     matrow = ("<tr class='matrow'><td></td>"
-                              f"<td colspan='8' class='matline'>needs: {parts}</td></tr>")
+                              f"<td colspan='9' class='matline'>needs: {parts}</td></tr>")
+                outq = int(r.get("out_qty", 1) or 1)
                 trs.append(
                     f"<tr><td class='rank'>{_esc(r.get('rank'))}</td>"
                     f"<td class='who'><a href='{_esc(link)}' target='_blank' rel='noopener'>{name}</a></td>"
                     f"<td class='num strong {cls}'>{_isk(iskhr)}</td>"
+                    f"<td class='num'>{('&times;' + str(outq)) if outq > 1 else '1'}</td>"
+                    f"<td class='num'>{_isk(r.get('unit_sell'))}</td>"
+                    f"<td class='num'>{_isk(r.get('unit_mat'))}</td>"
+                    f"<td class='num'>{_esc(round(r.get('margin_pct', 0) or 0))}%</td>"
                     f"<td class='num'>{_isk(r.get('profit'))}</td>"
                     f"<td class='num'>{_esc(round(r.get('build_hours', 0) or 0, 2))}</td>"
-                    f"<td class='num'>{_esc(round(r.get('margin_pct', 0) or 0))}%</td>"
-                    f"<td class='num'>{_isk(r.get('product_value'))}</td>"
-                    f"<td class='num'>{_isk(r.get('material_cost'))}</td>"
                     f"<td class='num'>{_esc(int(r.get('daily_volume', 0) or 0))}</td></tr>"
                     + matrow)
             sections.append(
                 f"<div class='thead' style='margin-top:22px'>{_esc(cat)}</div>"
                 "<table><thead><tr>"
-                + _th("#") + _th("ITEM") + _th("ISK/HR") + _th("PROFIT/BUILD")
-                + _th("HRS") + _th("MARGIN") + _th("SELL") + _th("MAT COST") + _th("VOL/DAY")
+                + _th("#") + _th("ITEM") + _th("ISK/HR") + _th("OUT") + _th("SELL/U")
+                + _th("MAT/U") + _th("MARGIN") + _th("PROFIT/RUN") + _th("HRS") + _th("VOL/DAY")
                 + "</tr></thead><tbody>" + "".join(trs) + "</tbody></table>")
         body = "".join(sections)
     return f"""<!doctype html>

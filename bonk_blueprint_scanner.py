@@ -251,6 +251,7 @@ def compute_profit(pid, product, prices, me_factor):
     hours = secs / 3600.0
     return {
         "type_id": pid, "name": product["name"], "category": product["category"],
+        "out_qty": out_qty, "unit_sell": pp["sell"], "unit_mat": mat_cost / out_qty,
         "product_value": product_value, "material_cost": mat_cost, "profit": profit,
         "build_hours": hours, "isk_per_hour": (profit / hours if hours > 0 else 0),
         "margin_pct": (profit / (mat_cost + job_fee) * 100) if (mat_cost + job_fee) > 0 else 0,
