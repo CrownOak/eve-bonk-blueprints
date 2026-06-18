@@ -383,7 +383,7 @@ def main():
     ap.add_argument("--top", type=int, default=5, help="how many top results to keep (you only need a few)")
     ap.add_argument("--page-top", type=int, default=5, help="rows on the HTML page")
     ap.add_argument("--categories", default="all", help="comma list: ships,modules,ammo,drones (default all)")
-    ap.add_argument("--min-volume", type=float, default=0, help="drop products with sell volume below this")
+    ap.add_argument("--min-volume", type=float, default=20, help="drop illiquid products (sell volume below this); raise for bulk-only")
     ap.add_argument("--max-margin", type=float, default=1000.0,
                     help="drop builds above this %% margin (collector/data artifacts; default 1000)")
     ap.add_argument("--refresh", action="store_true", help="force re-download of the SDE index")
