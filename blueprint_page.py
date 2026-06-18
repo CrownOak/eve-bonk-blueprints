@@ -68,32 +68,7 @@ def render_page(state):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="{REFRESH_SECONDS}">
 <title>BONK - Blueprint Scanner</title>
-<style>
-  :root {{ --ink:#0d1310; --panel:#141d18; --line:#21302a; --txt:#e6efe9; --mut:#8fa89a; --grn:#5fd9a0; --link:#73e0b4; }}
-  * {{ box-sizing:border-box; }}
-  body {{ margin:0; background:var(--ink); color:var(--txt);
-         font:14px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }}
-  header {{ padding:22px 28px 14px; border-bottom:1px solid var(--line); }}
-  h1 {{ margin:0; font-size:19px; letter-spacing:.06em; font-weight:800; color:var(--grn); }}
-  .sub {{ color:var(--mut); margin-top:6px; font-size:12.5px; }}
-  .wrap {{ padding:18px 28px 40px; }}
-  table {{ border-collapse:collapse; width:100%; background:var(--panel);
-           border:1px solid var(--line); border-radius:8px; overflow:hidden; }}
-  th {{ text-align:left; background:#0a110d; color:#c5d6cd; font-size:11px;
-        letter-spacing:.05em; text-transform:uppercase; padding:10px 12px; }}
-  td {{ padding:9px 12px; border-top:1px solid var(--line); }}
-  tr:hover td {{ background:#1c2a23; }}
-  .rank {{ color:var(--mut); width:34px; }}
-  .who a {{ color:var(--link); text-decoration:none; font-weight:600; }}
-  .who a:hover {{ text-decoration:underline; }}
-  .cat {{ color:var(--mut); font-size:12px; }}
-  .num {{ text-align:right; font-variant-numeric:tabular-nums; }}
-  .strong {{ font-weight:800; }}
-  .good {{ color:var(--grn); }} .warn {{ color:#e9c46a; }}
-  .empty {{ padding:40px; text-align:center; color:var(--mut);
-            background:var(--panel); border:1px solid var(--line); border-radius:8px; }}
-  footer {{ color:var(--mut); font-size:11.5px; padding:0 28px 30px; }}
-</style></head>
+<link rel="stylesheet" href="https://crownoak.github.io/wdeve/common.css"></head>
 <body>
   <header>
     <h1>BONK &middot; BLUEPRINT PROFITABILITY SCANNER</h1>
