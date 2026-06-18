@@ -83,17 +83,43 @@ def render_page(state):
                 link = "https://everef.net/types/" + str(r.get("type_id", ""))
                 iskhr = r.get("isk_per_hour", 0) or 0
                 cls = "good" if iskhr >= 5_000_000 else ("warn" if iskhr >= 1_000_000 else "")
-                mats = r.get("materials") or []
-                matrow = ""
-                if mats:
-                    parts = " &middot; ".join(
-                        f"{_esc(m.get('name'))} &times;{_qty(m.get('qty'))}" for m in mats)
-                    matrow = ("<tr class='matrow'><td></td>"
-                              f"<td colspan='9' class='matline'>needs: {parts}</td></tr>")
                 outq = int(r.get("out_qty", 1) or 1)
+                bp = r.get("build_path") or {}
+                plan = bp.get("plan") or []
+                comps = bp.get("components") or []
+                detail = ""
+                if plan or comps:
+                    title = ("Mining plan &middot; mine these, then build" if plan
+                             else "Materials &middot; build or buy")
+                    table_html = ""
+                    total_html = ""
+                    if plan:
+                        prows = "".join(
+                            f"<tr><td class='who'>{_esc(p.get('mineral'))}</td>"
+                            f"<td class='num'>{_qty(p.get('qty'))}</td>"
+                            f"<td>{_esc(p.get('ore'))}</td>"
+                            f"<td class='sec'>{_esc(p.get('sec'))}</td>"
+                            f"<td class='num'>{_qty(p.get('units'))}</td>"
+                            f"<td class='num'>{_qty(p.get('m3'))}</td></tr>" for p in plan)
+                        table_html = (
+                            "<table class='bpmine'><thead><tr><th>MINERAL</th><th>NEED</th><th>MINE</th>"
+                            "<th>SPACE</th><th>ORE UNITS</th><th>~m&sup3;</th></tr></thead>"
+                            f"<tbody>{prows}</tbody></table>")
+                        total_html = (
+                            f"<div class='bptot'>~{_qty(bp.get('total_m3'))} m&sup3; of raw ore total "
+                            "(per-mineral upper bound; the richest ores drop byproducts that cover others, "
+                            "so real volume is less). Lo/Null minerals can also just be bought.</div>")
+                    comptxt = " &middot; ".join(f"{_esc(n)} &times;{_qty(q)}" for n, q in comps)
+                    compline = f"<div class='bpcomp'>Build or buy: {comptxt}</div>" if comps else ""
+                    detail = (
+                        "<tr class='detail' style='display:none'><td colspan='10'>"
+                        f"<div class='bpath'><div class='bptitle'>{title}</div>"
+                        f"{table_html}{compline}{total_html}"
+                        "</div></td></tr>")
+                toggle = "<button class='exp' aria-label='build path'>&#9662;</button> " if detail else ""
                 trs.append(
                     f"<tr><td class='rank'>{_esc(r.get('rank'))}</td>"
-                    f"<td class='who'><a href='{_esc(link)}' target='_blank' rel='noopener'>{name}</a></td>"
+                    f"<td class='who'>{toggle}<a href='{_esc(link)}' target='_blank' rel='noopener'>{name}</a></td>"
                     f"<td class='num strong {cls}'>{_isk(iskhr)}</td>"
                     f"<td class='num'>{('&times;' + str(outq)) if outq > 1 else '1'}</td>"
                     f"<td class='num'>{_isk(r.get('unit_sell'))}</td>"
@@ -102,7 +128,7 @@ def render_page(state):
                     f"<td class='num'>{_isk(r.get('profit'))}</td>"
                     f"<td class='num'>{_esc(round(r.get('build_hours', 0) or 0, 2))}</td>"
                     f"<td class='num'>{_esc(int(r.get('daily_volume', 0) or 0))}</td></tr>"
-                    + matrow)
+                    + detail)
             sections.append(
                 f"<div class='thead' style='margin-top:22px'>{_esc(cat)}</div>"
                 "<table><thead><tr>"
@@ -115,7 +141,20 @@ def render_page(state):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="{REFRESH_SECONDS}">
 <title>BONK - Blueprint Scanner</title>
-<link rel="stylesheet" href="https://crownoak.github.io/wdeve/common.css?v=3"></head>
+<link rel="stylesheet" href="https://crownoak.github.io/wdeve/common.css?v=3">
+<style>
+  button.exp{{ background:transparent; border:1px solid var(--line); color:var(--ore); cursor:pointer;
+    font-family:var(--mono); font-size:10px; line-height:1; padding:2px 6px; margin-right:7px; vertical-align:middle; }}
+  button.exp:hover{{ border-color:var(--ore); background:rgba(70,255,94,.12); }}
+  tr.detail>td{{ background:var(--black); padding:0 12px 16px; border-top:0; }}
+  .bpath{{ border-left:2px solid var(--ore); background:var(--steel); padding:13px 16px; text-align:left; }}
+  .bptitle{{ font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ore); margin-bottom:10px; }}
+  table.bpmine{{ width:auto; min-width:520px; background:transparent; border:0; margin:0 0 8px; }}
+  table.bpmine th{{ position:static; background:transparent; font-size:10px; border-bottom:1px solid var(--line); }}
+  table.bpmine td{{ border-top:1px solid var(--line-soft); }}
+  .bpcomp{{ color:var(--silver-dim); font-family:var(--mono); font-size:11.5px; margin:8px 0 4px; }}
+  .bptot{{ color:var(--muted); font-family:var(--mono); font-size:11px; margin-top:6px; max-width:760px; line-height:1.5; }}
+</style></head>
 <body>
   <header>
     <h1>BONK &middot; BLUEPRINT PROFITABILITY SCANNER</h1>
@@ -125,6 +164,13 @@ def render_page(state):
   <footer>Most profitable T1 builds by ISK/hour, from EVE SDE + live Jita prices. Profit assumes
   Jita fills; treat as a directional guide. Top of the list = what to train toward and mine for.
   Click an item for its EVE Ref page (market + manufacturing). Auto-refreshes every {REFRESH_SECONDS//60}m.</footer>
+<script>
+Array.prototype.forEach.call(document.querySelectorAll("button.exp"),function(b){{
+  b.onclick=function(){{ var tr=b.closest("tr").nextElementSibling;
+    if(tr&&tr.classList.contains("detail")){{ var s=tr.style.display==="none";
+      tr.style.display=s?"":"none"; b.innerHTML=s?"&#9652;":"&#9662;"; }} }};
+}});
+</script>
 <script src="https://crownoak.github.io/wdeve/nav.js"></script>
 </body></html>"""
 

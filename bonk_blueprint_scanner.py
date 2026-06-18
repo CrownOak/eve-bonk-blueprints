@@ -270,6 +270,43 @@ def mat_summary(product, me_factor, names, limit=10):
     return out[:limit]
 
 
+# mineral -> (best accessible ore, security tier, refined yield per ore unit, ore m3/unit).
+# "Accessibility-aware": the richest ore in the LOWEST security tier where the mineral is
+# reasonably mined (so a highsec corp gets Veldspar for Tritanium, not nullsec Spodumain).
+# Yields are from the SDE reprocessing tables; minerals only found in low/null are flagged.
+MINERAL_ORE = {
+    "Tritanium": ("Veldspar",    "Hi",   4.0,  0.10),
+    "Pyerite":   ("Scordite",    "Hi",   1.1,  0.15),
+    "Mexallon":  ("Plagioclase", "Hi",   0.7,  0.35),
+    "Isogen":    ("Kernite",     "Hi",   1.2,  1.20),
+    "Nocxium":   ("Crokite",     "Lo",   8.0,  16.0),
+    "Zydrine":   ("Bistot",      "Null", 1.6,  16.0),
+    "Megacyte":  ("Arkonor",     "Null", 1.2,  16.0),
+    "Morphite":  ("Mercoxit",    "Null", 1.4,  40.0),
+}
+
+
+def build_path(product, me_factor, names):
+    """A clear 'go mine this' plan: split the ME-adjusted bill of materials into minerals
+    (mineable) and components (build/buy), and for each mineral pick the best ore + how many
+    units to mine. Per-mineral quantities are an upper bound (ores drop byproducts)."""
+    minerals, components = [], []
+    for mid, qty in product["materials"]:
+        nm = names.get(mid, f"id:{mid}")
+        adj = max(1, int(round(qty * me_factor)))
+        (minerals if nm in MINERAL_ORE else components).append((nm, adj))
+    minerals.sort(key=lambda x: x[1], reverse=True)
+    components.sort(key=lambda x: x[1], reverse=True)
+    plan, total_m3 = [], 0.0
+    for nm, qty in minerals:
+        ore, sec, ypu, vol = MINERAL_ORE[nm]
+        units = int(math.ceil(qty / ypu)) if ypu else 0
+        m3 = units * vol
+        total_m3 += m3
+        plan.append({"mineral": nm, "qty": qty, "ore": ore, "sec": sec, "units": units, "m3": m3})
+    return {"plan": plan, "components": components, "total_m3": total_m3}
+
+
 # ----------------------------------------------------------------------------
 # OUTPUT
 # ----------------------------------------------------------------------------
@@ -495,6 +532,7 @@ def main():
                 and calc["daily_volume"] >= args.min_volume
                 and calc["margin_pct"] <= args.max_margin):   # cap collector/artifact margins
             calc["materials"] = mat_summary(p, me_factor, names)
+            calc["build_path"] = build_path(p, me_factor, names)
             results.append(calc)
     if not results:
         print("  No profitable items computed (sparse prices or all filtered).")
