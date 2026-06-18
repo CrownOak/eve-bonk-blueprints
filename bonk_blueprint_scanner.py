@@ -98,7 +98,9 @@ def build_index(refresh=False, max_cache_days=25):
             obj = json.load(open(SDE_CACHE, encoding="utf-8"))
             built = datetime.fromisoformat(obj["built"])
             if (datetime.now(timezone.utc) - built).days < max_cache_days:
-                return {int(k): v for k, v in obj["products"].items()}
+                prods = {int(k): v for k, v in obj["products"].items()}
+                nms = {int(k): v for k, v in obj.get("names", {}).items()}
+                return prods, nms
         except Exception:
             pass
 
@@ -112,18 +114,26 @@ def build_index(refresh=False, max_cache_days=25):
                 groups[int(row["groupID"])] = int(row["categoryID"])
             except (ValueError, TypeError):
                 pass
-    # published types in our target categories -> (name, category_id)
+    # published types in our target categories -> (name, category_id);
+    # allnames -> every typeID's name (needed to label build materials, which are
+    # minerals/components that live outside our target categories)
     types = {}
+    allnames = {}
     for row in _rows(fetch_text(SDE + "invTypes.csv")):
+        try:
+            tid = int(row["typeID"])
+        except (ValueError, TypeError):
+            continue
+        allnames[tid] = row.get("typeName", f"id:{tid}")
         if row.get("published") != "1":
             continue
         try:
-            tid, gid = int(row["typeID"]), int(row["groupID"])
+            gid = int(row["groupID"])
         except (ValueError, TypeError):
             continue
         cat = groups.get(gid)
         if cat in CATEGORIES:
-            types[tid] = (row.get("typeName", f"id:{tid}"), cat)
+            types[tid] = (allnames[tid], cat)
     # blueprint -> (product, out_qty) for manufacturing (activity 1)
     bp_product = {}
     for row in _rows(fetch_text(SDE + "industryActivityProducts.csv")):
@@ -175,14 +185,21 @@ def build_index(refresh=False, max_cache_days=25):
         products[prod_id] = {"bp_id": bp_id, "name": name, "category": CATEGORIES[cat],
                              "build_seconds": secs, "out_qty": out_qty, "materials": mats}
 
+    # name lookup for the products + their materials (small subset, not all 110k types)
+    needed = set(products)
+    for p in products.values():
+        needed.update(m for m, _ in p["materials"])
+    names = {i: allnames.get(i, f"id:{i}") for i in needed}
+
     try:
         with open(SDE_CACHE, "w", encoding="utf-8") as f:
             json.dump({"built": datetime.now(timezone.utc).isoformat(),
-                       "products": {str(k): v for k, v in products.items()}}, f)
+                       "products": {str(k): v for k, v in products.items()},
+                       "names": {str(k): v for k, v in names.items()}}, f)
     except Exception:
         pass
     print(f"  Indexed {len(products)} manufacturable items.")
-    return products
+    return products, names
 
 
 # ----------------------------------------------------------------------------
@@ -239,6 +256,17 @@ def compute_profit(pid, product, prices, me_factor):
         "margin_pct": (profit / (mat_cost + job_fee) * 100) if (mat_cost + job_fee) > 0 else 0,
         "daily_volume": pp["volume"],
     }
+
+
+def mat_summary(product, me_factor, names, limit=10):
+    """ME-adjusted material requirements for one build run, labeled and sorted by
+    quantity (the big mineral inputs first). Used for the 'needs:' line on the page."""
+    out = []
+    for mid, qty in product["materials"]:
+        adj = max(1, int(round(qty * me_factor)))
+        out.append({"name": names.get(mid, f"id:{mid}"), "qty": adj})
+    out.sort(key=lambda m: m["qty"], reverse=True)
+    return out[:limit]
 
 
 # ----------------------------------------------------------------------------
@@ -435,7 +463,7 @@ def main():
         wanted = {c.strip().capitalize() for c in args.categories.split(",")}
 
     try:
-        products = build_index(refresh=args.refresh, max_cache_days=args.max_cache_days)
+        products, names = build_index(refresh=args.refresh, max_cache_days=args.max_cache_days)
     except Exception as e:
         print(f"  Could not build SDE index: {e}")
         return 1
@@ -465,6 +493,7 @@ def main():
         if (calc and calc["isk_per_hour"] > 0
                 and calc["daily_volume"] >= args.min_volume
                 and calc["margin_pct"] <= args.max_margin):   # cap collector/artifact margins
+            calc["materials"] = mat_summary(p, me_factor, names)
             results.append(calc)
     if not results:
         print("  No profitable items computed (sparse prices or all filtered).")

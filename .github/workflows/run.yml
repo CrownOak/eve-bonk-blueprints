@@ -1,0 +1,62 @@
+name: run
+# BONK blueprint profitability scanner: rank the most profitable T1 builds by ISK/hour
+# from the SDE + live Jita prices, render the locked page, cache the SDE index, publish to wdeve.
+on:
+  schedule:
+    - cron: '0 11 1 * *'       # monthly, 11:00 UTC on the 1st
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: run-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install deps
+        run: pip install --quiet openpyxl cryptography
+
+      - name: Run scanner
+        env:
+          EVE_PAGE_PASSWORD: ${{ secrets.EVE_PAGE_PASSWORD }}
+        run: python bonk_blueprint_scanner.py --me 10
+
+      - name: Persist SDE cache to this repo
+        run: |
+          git config user.name  "eve-ops-bot"
+          git config user.email "eve-ops-bot@users.noreply.github.com"
+          git add -f sde_index.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "state: $(date -u +%FT%TZ)"
+            for i in 1 2 3 4 5; do git push && break || { git pull --rebase; sleep $((RANDOM % 4 + 2)); }; done
+          fi
+
+      - name: Checkout wdeve
+        uses: actions/checkout@v4
+        with:
+          repository: CrownOak/wdeve
+          ssh-key: ${{ secrets.WDEVE_DEPLOY_KEY }}
+          path: _wdeve
+
+      - name: Publish page to wdeve
+        run: |
+          mkdir -p _wdeve/blueprints
+          cp index.html _wdeve/blueprints/index.html
+          cd _wdeve
+          git config user.name  "eve-ops-bot"
+          git config user.email "eve-ops-bot@users.noreply.github.com"
+          git add blueprints/index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "blueprints: page update $(date -u +%FT%TZ)"
+            for i in 1 2 3 4 5; do git push && break || { git pull --rebase; sleep $((RANDOM % 4 + 2)); }; done
+          fi

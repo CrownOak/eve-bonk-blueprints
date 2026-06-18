@@ -33,26 +33,15 @@ _TEMPLATE = r"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__TITLE__</title>
-<style>
-  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
-         background:#13110c; color:#efeadd; font:14px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif; }
-  .card { width:320px; padding:28px; background:#1d1a12; border:1px solid #332e20; border-radius:10px; text-align:center; }
-  h1 { font-size:15px; letter-spacing:.08em; color:#f5c518; margin:0 0 4px; }
-  p { color:#a59c84; font-size:12.5px; margin:0 0 16px; }
-  input { width:100%; padding:10px 12px; background:#0e0c08; border:1px solid #332e20; border-radius:6px;
-          color:#efeadd; font-size:14px; }
-  button { width:100%; margin-top:10px; padding:10px; background:#f5c518; border:0; border-radius:6px;
-           color:#1a1505; font-weight:700; cursor:pointer; }
-  .err { color:#f08c84; font-size:12px; min-height:16px; margin-top:10px; }
-</style></head>
+<link rel="stylesheet" href="https://crownoak.github.io/wdeve/common.css"></head>
 <body>
-<div class="card">
+<div class="gate"><div class="card">
   <h1>__TITLE__</h1>
   <p>Protected. Enter the password.</p>
   <input id="pw" type="password" autofocus autocomplete="current-password" placeholder="password">
   <button id="go">Unlock</button>
   <div class="err" id="err"></div>
-</div>
+</div></div>
 <script>
 const B = __BLOB__;
 const dec = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));

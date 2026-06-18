@@ -28,6 +28,18 @@ def _isk(v):
     return f"{v:.0f}"
 
 
+def _qty(n):
+    try:
+        n = int(n or 0)
+    except (TypeError, ValueError):
+        return "0"
+    if n >= 1_000_000:
+        return f"{n/1_000_000:.2f}M"
+    if n >= 1_000:
+        return f"{n/1_000:.1f}k"
+    return str(n)
+
+
 def render_page(state):
     """state = {generated_at, me_level, basis, count, rows:[...]}"""
     if not state or not state.get("rows"):
@@ -53,6 +65,13 @@ def render_page(state):
                 link = "https://everef.net/types/" + str(r.get("type_id", ""))
                 iskhr = r.get("isk_per_hour", 0) or 0
                 cls = "good" if iskhr >= 5_000_000 else ("warn" if iskhr >= 1_000_000 else "")
+                mats = r.get("materials") or []
+                matrow = ""
+                if mats:
+                    parts = " &middot; ".join(
+                        f"{_esc(m.get('name'))} &times;{_qty(m.get('qty'))}" for m in mats)
+                    matrow = ("<tr class='matrow'><td></td>"
+                              f"<td colspan='8' class='matline'>needs: {parts}</td></tr>")
                 trs.append(
                     f"<tr><td class='rank'>{_esc(r.get('rank'))}</td>"
                     f"<td class='who'><a href='{_esc(link)}' target='_blank' rel='noopener'>{name}</a></td>"
@@ -62,7 +81,8 @@ def render_page(state):
                     f"<td class='num'>{_esc(round(r.get('margin_pct', 0) or 0))}%</td>"
                     f"<td class='num'>{_isk(r.get('product_value'))}</td>"
                     f"<td class='num'>{_isk(r.get('material_cost'))}</td>"
-                    f"<td class='num'>{_esc(int(r.get('daily_volume', 0) or 0))}</td></tr>")
+                    f"<td class='num'>{_esc(int(r.get('daily_volume', 0) or 0))}</td></tr>"
+                    + matrow)
             sections.append(
                 f"<div class='thead' style='margin-top:22px'>{_esc(cat)}</div>"
                 "<table><thead><tr>"
