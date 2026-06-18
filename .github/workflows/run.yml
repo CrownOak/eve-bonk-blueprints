@@ -27,9 +27,7 @@ jobs:
         run: pip install --quiet openpyxl cryptography
 
       - name: Run scanner
-        env:
-          EVE_PAGE_PASSWORD: ${{ secrets.EVE_PAGE_PASSWORD }}
-        run: python bonk_blueprint_scanner.py --me 10
+        run: python bonk_blueprint_scanner.py --me 10 --allow-unlocked   # public page (unlocked)
 
       - name: Persist SDE cache to this repo
         run: |
