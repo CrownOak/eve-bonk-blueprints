@@ -37,32 +37,39 @@ def render_page(state):
         gen = _esc(state.get("generated_at"))
         me = _esc(state.get("me_level"))
         basis = _esc(state.get("basis"))
-        cnt = _esc(state.get("count"))
-        sub = (f"{cnt} profitable builds &middot; ME{me} &middot; {basis} &middot; "
+        per = _esc(state.get("per_cat") or "5")
+        sub = (f"top {per} per category by ISK/hour &middot; ME{me} &middot; {basis} &middot; "
                f"generated {gen} UTC")
-        trs = []
+        groups = {}
         for r in state["rows"]:
-            tid = _esc(r.get("type_id"))
-            name = _esc(r.get("name"))
-            link = "https://market.fuzzwork.co.uk/types/" + str(r.get("type_id", "")) + "/"
-            iskhr = r.get("isk_per_hour", 0) or 0
-            cls = "good" if iskhr >= 5_000_000 else ("warn" if iskhr >= 1_000_000 else "")
-            trs.append(
-                f"<tr><td class='rank'>{_esc(r.get('rank'))}</td>"
-                f"<td class='who'><a href='{_esc(link)}' target='_blank' rel='noopener'>{name}</a></td>"
-                f"<td class='cat'>{_esc(r.get('category'))}</td>"
-                f"<td class='num strong {cls}'>{_isk(iskhr)}</td>"
-                f"<td class='num'>{_isk(r.get('profit'))}</td>"
-                f"<td class='num'>{_esc(round(r.get('build_hours', 0) or 0, 2))}</td>"
-                f"<td class='num'>{_esc(round(r.get('margin_pct', 0) or 0))}%</td>"
-                f"<td class='num'>{_isk(r.get('product_value'))}</td>"
-                f"<td class='num'>{_isk(r.get('material_cost'))}</td>"
-                f"<td class='num'>{_esc(int(r.get('daily_volume', 0) or 0))}</td></tr>")
-        body = (
-            "<table><thead><tr>"
-            "<th>#</th><th>ITEM</th><th>CAT</th><th>ISK/HR</th><th>PROFIT/BUILD</th>"
-            "<th>HRS</th><th>MARGIN</th><th>SELL</th><th>MAT COST</th><th>VOL/DAY</th>"
-            "</tr></thead><tbody>" + "".join(trs) + "</tbody></table>")
+            groups.setdefault(r.get("category") or "Other", []).append(r)
+        order = ["Ships", "Modules", "Ammo", "Drones"]
+        cats = [c for c in order if c in groups] + [c for c in groups if c not in order]
+        sections = []
+        for cat in cats:
+            trs = []
+            for r in groups[cat]:
+                name = _esc(r.get("name"))
+                link = "https://market.fuzzwork.co.uk/types/" + str(r.get("type_id", "")) + "/"
+                iskhr = r.get("isk_per_hour", 0) or 0
+                cls = "good" if iskhr >= 5_000_000 else ("warn" if iskhr >= 1_000_000 else "")
+                trs.append(
+                    f"<tr><td class='rank'>{_esc(r.get('rank'))}</td>"
+                    f"<td class='who'><a href='{_esc(link)}' target='_blank' rel='noopener'>{name}</a></td>"
+                    f"<td class='num strong {cls}'>{_isk(iskhr)}</td>"
+                    f"<td class='num'>{_isk(r.get('profit'))}</td>"
+                    f"<td class='num'>{_esc(round(r.get('build_hours', 0) or 0, 2))}</td>"
+                    f"<td class='num'>{_esc(round(r.get('margin_pct', 0) or 0))}%</td>"
+                    f"<td class='num'>{_isk(r.get('product_value'))}</td>"
+                    f"<td class='num'>{_isk(r.get('material_cost'))}</td>"
+                    f"<td class='num'>{_esc(int(r.get('daily_volume', 0) or 0))}</td></tr>")
+            sections.append(
+                f"<div class='thead' style='margin-top:22px'>{_esc(cat)}</div>"
+                "<table><thead><tr>"
+                "<th>#</th><th>ITEM</th><th>ISK/HR</th><th>PROFIT/BUILD</th>"
+                "<th>HRS</th><th>MARGIN</th><th>SELL</th><th>MAT COST</th><th>VOL/DAY</th>"
+                "</tr></thead><tbody>" + "".join(trs) + "</tbody></table>")
+        body = "".join(sections)
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

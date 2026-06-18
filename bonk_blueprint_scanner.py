@@ -331,10 +331,7 @@ def run_demo(args):
                      "product_value": mat + prof, "material_cost": mat, "profit": prof,
                      "build_hours": hrs, "isk_per_hour": prof / hrs,
                      "margin_pct": prof / mat * 100, "daily_volume": random.randint(0, 5000)})
-    rows.sort(key=lambda r: r["isk_per_hour"], reverse=True)
-    rows = rows[: args.top]
-    for i, r in enumerate(rows, 1):
-        r["rank"] = i
+    rows = _top_per_category(rows, args.top)
     _finalize(rows, args, me_level=args.me if args.me is not None else 10, demo=True)
     print(f"\n  DEMO: {len(rows)} fake builds (no network). Outputs written with _demo suffix.\n")
     return 0
@@ -343,6 +340,24 @@ def run_demo(args):
 # ----------------------------------------------------------------------------
 # FINALIZE
 # ----------------------------------------------------------------------------
+
+CAT_ORDER = ["Ships", "Modules", "Ammo", "Drones"]
+
+
+def _top_per_category(results, n):
+    """Group by category, keep the top n by ISK/hour in each (rank resets per
+    category). Returned rows are ordered Ships, Modules, Ammo, Drones."""
+    by = {}
+    for r in results:
+        by.setdefault(r["category"], []).append(r)
+    out, cats = [], [c for c in CAT_ORDER if c in by] + [c for c in by if c not in CAT_ORDER]
+    for cat in cats:
+        grp = sorted(by[cat], key=lambda x: x["isk_per_hour"], reverse=True)[:n]
+        for i, r in enumerate(grp, 1):
+            r["rank"] = i
+        out.extend(grp)
+    return out
+
 
 def _finalize(rows, args, me_level, demo=False):
     basis = "buy materials at Jita sell, sell product at Jita sell, ~5% job fee"
@@ -359,18 +374,21 @@ def _finalize(rows, args, me_level, demo=False):
         html_file = "index_demo.html" if demo else args.html
         pw = os.environ.get("EVE_PAGE_PASSWORD")
         state = {"generated_at": datetime.now(timezone.utc).isoformat(), "me_level": me_level,
-                 "basis": basis, "count": len(rows), "rows": rows[: args.page_top]}
+                 "basis": basis, "count": len(rows), "per_cat": args.top, "rows": rows}
         blueprint_page.write_html(html_file, state, pw, allow_plain=(demo or args.allow_unlocked))
         lock = "locked" if pw else ("UNLOCKED (allow-unlocked)" if (demo or args.allow_unlocked) else "?")
         print(f"  Wrote page {html_file}  [{lock}]")
 
-    print(f"\n  Top builds by ISK/hour (ME{me_level}):")
-    print("  " + "-" * 74)
-    for r in rows[:25]:
+    print(f"\n  Top {args.top} by ISK/hour per category (ME{me_level}):")
+    cur = None
+    for r in rows:
+        if r.get("category") != cur:
+            cur = r.get("category")
+            print(f"\n  {str(cur).upper()}")
+            print("  " + "-" * 68)
         ih = r["isk_per_hour"]
         s = f"{ih/1e6:.1f}M" if ih >= 1e6 else f"{ih/1e3:.0f}k"
-        print(f"  {r.get('rank', 0):>3} {r['name'][:34]:<34} {s:>8}/hr  ({r['margin_pct']:.0f}% margin)")
-    print("  " + "-" * 74)
+        print(f"   {r.get('rank', 0):>2} {r['name'][:32]:<32} {s:>8}/hr  ({r['margin_pct']:.0f}% margin)")
 
 
 # ----------------------------------------------------------------------------
@@ -380,8 +398,8 @@ def _finalize(rows, args, me_level, demo=False):
 def main():
     ap = argparse.ArgumentParser(description="Rank the most profitable items to manufacture (ISK/hour).")
     ap.add_argument("--me", type=int, default=None, help="Material Efficiency level 0-10 (default 10)")
-    ap.add_argument("--top", type=int, default=5, help="how many top results to keep (you only need a few)")
-    ap.add_argument("--page-top", type=int, default=5, help="rows on the HTML page")
+    ap.add_argument("--top", type=int, default=5, help="how many top builds to keep PER category")
+    ap.add_argument("--page-top", type=int, default=5, help="(unused; page shows all per-category rows)")
     ap.add_argument("--categories", default="all", help="comma list: ships,modules,ammo,drones (default all)")
     ap.add_argument("--min-volume", type=float, default=20, help="drop illiquid products (sell volume below this); raise for bulk-only")
     ap.add_argument("--max-margin", type=float, default=1000.0,
@@ -446,14 +464,11 @@ def main():
         print("  No profitable items computed (sparse prices or all filtered).")
         return 1
 
-    results.sort(key=lambda x: x["isk_per_hour"], reverse=True)
-    rows = results[: args.top]
-    for i, r in enumerate(rows, 1):
-        r["rank"] = i
+    rows = _top_per_category(results, args.top)
 
     _finalize(rows, args, me_level)
-    print(f"\n  {len(results)} profitable builds found; showing top {len(rows)}. "
-          "Top of the list = what to train toward and mine for.\n")
+    print(f"\n  {len(results)} profitable builds found; showing top {args.top} per category. "
+          "Top of each list = what to train toward and mine for.\n")
     return 0
 
 
