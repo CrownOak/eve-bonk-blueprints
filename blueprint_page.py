@@ -50,7 +50,7 @@ def render_page(state):
             trs = []
             for r in groups[cat]:
                 name = _esc(r.get("name"))
-                link = "https://market.fuzzwork.co.uk/types/" + str(r.get("type_id", "")) + "/"
+                link = "https://everef.net/types/" + str(r.get("type_id", ""))
                 iskhr = r.get("isk_per_hour", 0) or 0
                 cls = "good" if iskhr >= 5_000_000 else ("warn" if iskhr >= 1_000_000 else "")
                 trs.append(
@@ -75,7 +75,7 @@ def render_page(state):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="{REFRESH_SECONDS}">
 <title>BONK - Blueprint Scanner</title>
-<link rel="stylesheet" href="https://crownoak.github.io/wdeve/common.css"></head>
+<link rel="stylesheet" href="https://crownoak.github.io/wdeve/common.css?v=2"></head>
 <body>
   <header>
     <h1>BONK &middot; BLUEPRINT PROFITABILITY SCANNER</h1>
@@ -84,7 +84,7 @@ def render_page(state):
   <div class="wrap">{body}</div>
   <footer>Most profitable T1 builds by ISK/hour, from EVE SDE + live Jita prices. Profit assumes
   Jita fills; treat as a directional guide. Top of the list = what to train toward and mine for.
-  Click an item for its Fuzzwork market page. Auto-refreshes every {REFRESH_SECONDS//60}m.</footer>
+  Click an item for its EVE Ref page (market + manufacturing). Auto-refreshes every {REFRESH_SECONDS//60}m.</footer>
 <script src="https://crownoak.github.io/wdeve/nav.js"></script>
 </body></html>"""
 
