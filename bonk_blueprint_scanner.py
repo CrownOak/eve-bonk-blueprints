@@ -448,6 +448,7 @@ def main():
     all_ids = set(products)
     for p in products.values():
         all_ids.update(m for m, _ in p["materials"])
+        all_ids.add(p["bp_id"])   # also price the blueprint, to test it is obtainable
     prices = get_prices(all_ids)
     if not prices:
         print("  No price data returned (market endpoint down?).")
@@ -455,6 +456,11 @@ def main():
 
     results = []
     for pid, p in products.items():
+        # Skip items whose blueprint is not sold on the market: EDENCOM, Triglavian,
+        # and other special items have SDE manufacturing rows but no obtainable BPO,
+        # so a normal player cannot actually build them.
+        if prices.get(p["bp_id"], {}).get("sell", 0) <= 0:
+            continue
         calc = compute_profit(pid, p, prices, me_factor)
         if (calc and calc["isk_per_hour"] > 0
                 and calc["daily_volume"] >= args.min_volume
