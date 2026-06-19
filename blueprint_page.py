@@ -4,7 +4,7 @@ BONK Blueprint Scanner : shared page renderer.
 Renders the "best builds by ISK/hour" HTML (written to disk each run, client-side
 encrypted, then published). Same lock model as the sibling EVE tools.
 """
-import html, os, tempfile
+import base64, html, json, os, tempfile
 
 REFRESH_SECONDS = 3600  # monthly tool; light refresh
 
@@ -81,6 +81,12 @@ def render_page(state):
             for r in groups[cat]:
                 name = _esc(r.get("name"))
                 link = "https://everef.net/types/" + str(r.get("type_id", ""))
+                proj_b64 = base64.b64encode(json.dumps({
+                    "name": r.get("name"), "out": int(r.get("out_qty", 1) or 1),
+                    "mats": r.get("bom") or {}}).encode("utf-8")).decode("ascii")
+                track = (f"<button class='totrack' data-p='{proj_b64}' "
+                         "title='Add this build to the Refinery Project Tracker'>+ track</button>"
+                         if r.get("bom") else "")
                 iskhr = r.get("isk_per_hour", 0) or 0
                 cls = "good" if iskhr >= 5_000_000 else ("warn" if iskhr >= 1_000_000 else "")
                 outq = int(r.get("out_qty", 1) or 1)
@@ -119,7 +125,7 @@ def render_page(state):
                 toggle = "<button class='exp' aria-label='build path'>&#9662;</button> " if detail else ""
                 trs.append(
                     f"<tr><td class='rank'>{_esc(r.get('rank'))}</td>"
-                    f"<td class='who'>{toggle}<a href='{_esc(link)}' target='_blank' rel='noopener'>{name}</a></td>"
+                    f"<td class='who'>{toggle}<a href='{_esc(link)}' target='_blank' rel='noopener'>{name}</a> {track}</td>"
                     f"<td class='num strong {cls}'>{_isk(iskhr)}</td>"
                     f"<td class='num'>{('&times;' + str(outq)) if outq > 1 else '1'}</td>"
                     f"<td class='num'>{_isk(r.get('unit_sell'))}</td>"
@@ -154,6 +160,9 @@ def render_page(state):
   table.bpmine td{{ border-top:1px solid var(--line-soft); }}
   .bpcomp{{ color:var(--silver-dim); font-family:var(--mono); font-size:11.5px; margin:8px 0 4px; }}
   .bptot{{ color:var(--muted); font-family:var(--mono); font-size:11px; margin-top:6px; max-width:760px; line-height:1.5; }}
+  button.totrack{{ background:transparent; border:1px solid var(--line); color:var(--silver-dim); cursor:pointer;
+    font-family:var(--mono); font-size:10px; letter-spacing:.04em; padding:2px 7px; vertical-align:middle; }}
+  button.totrack:hover{{ border-color:var(--ore); color:var(--ore); }}
 </style></head>
 <body>
   <header>
@@ -169,6 +178,17 @@ Array.prototype.forEach.call(document.querySelectorAll("button.exp"),function(b)
   b.onclick=function(){{ var tr=b.closest("tr").nextElementSibling;
     if(tr&&tr.classList.contains("detail")){{ var s=tr.style.display==="none";
       tr.style.display=s?"":"none"; b.innerHTML=s?"&#9652;":"&#9662;"; }} }};
+}});
+Array.prototype.forEach.call(document.querySelectorAll("button.totrack"),function(b){{
+  b.onclick=function(ev){{ ev.preventDefault(); ev.stopPropagation();
+    try{{ var p=JSON.parse(decodeURIComponent(escape(atob(b.getAttribute("data-p")))));
+      var cust={{}}; try{{ cust=JSON.parse(localStorage.getItem("bonk_custom_targets")||"{{}}"); }}catch(_e){{}}
+      cust[p.name]={{out:p.out, mats:p.mats}};
+      localStorage.setItem("bonk_custom_targets", JSON.stringify(cust));
+      localStorage.setItem("bonk_pending_target", p.name);
+      location.href="../refine/";
+    }}catch(err){{ b.textContent="error"; }}
+  }};
 }});
 </script>
 <script src="https://crownoak.github.io/wdeve/nav.js"></script>

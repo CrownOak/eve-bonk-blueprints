@@ -533,6 +533,8 @@ def main():
                 and calc["margin_pct"] <= args.max_margin):   # cap collector/artifact margins
             calc["materials"] = mat_summary(p, me_factor, names)
             calc["build_path"] = build_path(p, me_factor, names)
+            # Full ME0 per-run bill of materials, for the refinery Project Tracker handoff.
+            calc["bom"] = {names.get(mid, "id:%d" % mid): qty for mid, qty in p["materials"]}
             results.append(calc)
     if not results:
         print("  No profitable items computed (sparse prices or all filtered).")
