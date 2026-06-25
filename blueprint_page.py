@@ -147,7 +147,7 @@ def render_page(state):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="{REFRESH_SECONDS}">
 <title>BONK - Blueprint Scanner</title>
-<link rel="stylesheet" href="https://crownoak.github.io/wdeve/common.css?v=3">
+<link rel="stylesheet" href="/common.css?v=3">
 <style>
   button.exp{{ background:transparent; border:1px solid var(--line); color:var(--ore); cursor:pointer;
     font-family:var(--mono); font-size:10px; line-height:1; padding:2px 6px; margin-right:7px; vertical-align:middle; }}
@@ -191,7 +191,7 @@ Array.prototype.forEach.call(document.querySelectorAll("button.totrack"),functio
   }};
 }});
 </script>
-<script src="https://crownoak.github.io/wdeve/nav.js"></script>
+<script src="/nav.js?v=2"></script>
 </body></html>"""
 
 

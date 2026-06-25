@@ -33,7 +33,7 @@ _TEMPLATE = r"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__TITLE__</title>
-<link rel="stylesheet" href="https://crownoak.github.io/wdeve/common.css"></head>
+<link rel="stylesheet" href="/common.css"></head>
 <body>
 <div class="gate"><div class="card">
   <h1>__TITLE__</h1>
